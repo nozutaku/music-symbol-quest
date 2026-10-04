@@ -1,0 +1,9 @@
+{
+  "name": "music-symbol-quest",
+  "version": "1.0.0",
+  "description": "音楽記号の読み方と意味をゲーム感覚で学ぶアプリ",
+  "private": true,
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\""
+  }
+}
