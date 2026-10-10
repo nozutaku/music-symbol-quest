@@ -26,10 +26,21 @@ test('データ: 全記号のカテゴリが CATEGORIES に存在し、各カテ
   }
 });
 
-test('データ: 意味・読み・表記が重複しない（選択肢が曖昧にならない）', () => {
-  for (const key of ['meaning', 'reading', 'display']) {
+test('データ: 読み・表記が重複しない（選択肢が曖昧にならない）', () => {
+  for (const key of ['reading', 'display']) {
     const values = SYMBOLS.map((s) => s[key]);
     assert.equal(new Set(values).size, values.length, `${key} に重複あり`);
+  }
+});
+
+test('データ: 教材の表で意味が同じ記号（Adagio/Lento、decresc./dim.）でも選択肢に同じ意味が2つ並ばない', () => {
+  assert.equal(sym('adagio').meaning, sym('lento').meaning);
+  assert.equal(sym('decresc').meaning, sym('dim').meaning);
+  for (const id of ['adagio', 'lento', 'decresc', 'dim']) {
+    for (let seed = 0; seed < 30; seed++) {
+      const q = buildQuestion(SYMBOLS, sym(id), 'meaning', createRng(seed));
+      assert.equal(q.choices.filter((c) => c === sym(id).meaning).length, 1, `${id} seed=${seed}`);
+    }
   }
 });
 
@@ -202,4 +213,15 @@ test('createGame: 異常系 - 二重回答・未回答で next・終了後の回
 
 test('createGame: 異常系 - 記号が選択肢数より少ないとエラー', () => {
   assert.throws(() => createGame({ symbols: SYMBOLS.slice(0, 3) }), /not enough/);
+});
+
+test('symbol問題: 意味が同じ記号（Adagio/Lento、decresc./dim.）も別の記号として扱い、正解は1つで読みの補足も出る', () => {
+  for (const id of ['adagio', 'lento', 'decresc', 'dim']) {
+    for (let seed = 0; seed < 100; seed++) {
+      const q = buildQuestion(SYMBOLS, sym(id), 'symbol', createRng(seed));
+      assert.equal(q.prompt.sub, sym(id).reading, id);
+      assert.equal(q.choices.filter((c) => c === sym(id).display).length, 1, id);
+      assert.equal(q.choices[q.correctIndex], sym(id).display, id);
+    }
+  }
 });

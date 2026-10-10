@@ -60,10 +60,11 @@
     }
 
     const options = shuffle([target, ...distractors], rng);
+    const prompt = promptOf(target, type);
     return {
       type,
       symbol: target,
-      prompt: promptOf(target, type),
+      prompt,
       choices: options.map((o) => choiceTextOf(o, type)),
       correctIndex: options.findIndex((o) => o.id === target.id),
     };

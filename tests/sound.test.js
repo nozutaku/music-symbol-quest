@@ -22,12 +22,16 @@ function fakeContext(state = 'running') {
   return { ctx, oscs };
 }
 
-test('正解音: 音程が単調に上昇し、不正解音: 下降し、不正解の最高音は正解の最低音より低い', () => {
-  const up = PATTERNS.correct.notes.map((n) => n.freq);
-  const down = PATTERNS.wrong.notes.map((n) => n.freq);
-  assert.deepEqual([...up].sort((a, b) => a - b), up);
-  assert.deepEqual([...down].sort((a, b) => b - a), down);
-  assert.ok(Math.max(...down) < Math.min(...up));
+test('正解音(ピンポーン): 高い音のあとに低い音が続き、後の音のほうが長い。不正解音(ブッブー)は正解音より低い', () => {
+  const [ping, pong] = PATTERNS.correct.notes;
+  assert.ok(ping.freq > pong.freq);
+  assert.ok(pong.duration > ping.duration);
+  const buzz = PATTERNS.wrong.notes;
+  assert.equal(buzz.length, 2);
+  assert.equal(buzz[0].freq, buzz[1].freq);
+  assert.ok(buzz[1].duration > buzz[0].duration);
+  assert.ok(buzz[1].start > buzz[0].start + buzz[0].duration, '「ブッ」と「ブー」の間に無音がある');
+  assert.ok(buzz[0].freq < pong.freq);
 });
 
 test('全パターンの音符は周波数・長さが正で、開始時刻が昇順', () => {
@@ -41,20 +45,22 @@ test('全パターンの音符は周波数・長さが正で、開始時刻が�
   }
 });
 
-test('playPattern(correct): 音符数ぶんのオシレーターが現在時刻基準で予約され、終了秒数を返す', () => {
+test('playPattern(correct): サイン波2音（ピン・ポーン）が現在時刻基準で予約され、終了秒数を返す', () => {
   const { ctx, oscs } = fakeContext();
   const end = playPattern(ctx, 'correct');
-  assert.equal(oscs.length, 4);
-  assert.deepEqual(oscs.map((o) => o.frequency.value), [523.25, 659.25, 783.99, 1046.5]);
-  assert.ok(Math.abs(oscs[2].started - 10.2) < 1e-9);
-  assert.ok(oscs.every((o) => o.type === 'triangle' && o.stopped > o.started));
-  assert.ok(Math.abs(end - 0.58) < 1e-9);
+  assert.equal(oscs.length, 2);
+  assert.deepEqual(oscs.map((o) => o.frequency.value), [1760, 1318.51]);
+  assert.ok(Math.abs(oscs[1].started - 10.25) < 1e-9);
+  assert.ok(oscs.every((o) => o.type === 'sine' && o.stopped > o.started));
+  assert.ok(Math.abs(end - 1.35) < 1e-9);
 });
 
-test('playPattern(wrong): のこぎり波で2音が鳴る', () => {
+test('playPattern(wrong): のこぎり波のブザーが「ブッ」「ブー」の2回鳴り、2回目は0.26秒後に始まる', () => {
   const { ctx, oscs } = fakeContext();
-  playPattern(ctx, 'wrong');
+  const end = playPattern(ctx, 'wrong');
   assert.equal(oscs.length, 2);
+  assert.ok(Math.abs(oscs[1].started - 10.26) < 1e-9);
+  assert.ok(Math.abs(end - 0.76) < 1e-9);
   assert.ok(oscs.every((o) => o.type === 'sawtooth'));
 });
 
@@ -72,7 +78,7 @@ test('createPlayer: ミュート中は鳴らさずコンテキストも作らな
   assert.equal(oscs.length, 0);
   player.setMuted(false);
   assert.equal(player.play('correct'), true);
-  assert.equal(oscs.length, 4);
+  assert.equal(oscs.length, 2);
 });
 
 test('createPlayer: suspended 状態なら resume を呼び、コンテキストは再利用される', () => {
@@ -88,4 +94,10 @@ test('createPlayer: suspended 状態なら resume を呼び、コンテキスト
 test('createPlayer: 音を出せない環境（コンテキスト生成失敗・null）でも例外を出さず false', () => {
   assert.equal(createPlayer(() => { throw new Error('no audio'); }).play('correct'), false);
   assert.equal(createPlayer(() => null).play('correct'), false);
+});
+
+test('音量: 正解音は不正解のブザーより大きく設定され、どちらも 0 より大きく 1 以下', () => {
+  const { correct, wrong } = PATTERNS;
+  assert.ok(correct.volume > wrong.volume);
+  for (const p of [correct, wrong]) assert.ok(p.volume > 0 && p.volume <= 1);
 });

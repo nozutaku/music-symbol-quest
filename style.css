@@ -61,6 +61,9 @@ button:disabled { cursor: default; }
   font-style: normal; overflow-wrap: anywhere;
 }
 .q-main.text-size { font-size: 1.7rem; }
+svg.sym { height: 1.6em; width: auto; vertical-align: middle; overflow: visible; }
+.fb-glyph svg.sym { height: 2.4em; }
+.choices.glyph button { display: flex; justify-content: center; align-items: center; min-height: 5rem; }
 .q-sub { color: var(--muted); }
 
 .choices { display: grid; gap: 10px; grid-template-columns: 1fr; }

@@ -64,13 +64,34 @@
     $('st-combo').textContent = st.combo >= 2 ? `🔥 ${st.combo} 連続` : '';
   }
 
+  // 記号の表記（display）を、図が用意されていれば SVG、なければ文字で表示する
+  function setSymbol(el, display) {
+    const sym = SYMBOLS.find((x) => x.display === display);
+    const svg = sym && window.MusicGlyphs.svgFor(sym.id);
+    if (svg) {
+      el.innerHTML = svg;
+      el.setAttribute('role', 'img');
+      el.setAttribute('aria-label', sym.reading);
+    } else {
+      el.textContent = display;
+      el.removeAttribute('role');
+      el.removeAttribute('aria-label');
+    }
+  }
+
   function renderQuestion() {
     const q = game.current();
     renderStatus();
     $('feedback').hidden = true;
     $('q-label').textContent = TYPE_LABELS[q.type];
     const main = $('q-main');
-    main.textContent = q.prompt.main;
+    if (q.type === 'symbol') {
+      main.textContent = q.prompt.main;
+      main.removeAttribute('role');
+      main.removeAttribute('aria-label');
+    } else {
+      setSymbol(main, q.prompt.main);
+    }
     main.classList.toggle('text-size', q.type === 'symbol');
     $('q-sub').textContent = q.prompt.sub;
 
@@ -86,7 +107,13 @@
         key.textContent = String(i + 1);
         btn.appendChild(key);
       }
-      btn.appendChild(document.createTextNode(text));
+      if (q.type === 'symbol') {
+        const glyph = document.createElement('span');
+        setSymbol(glyph, text);
+        btn.appendChild(glyph);
+      } else {
+        btn.appendChild(document.createTextNode(text));
+      }
       btn.addEventListener('click', () => choose(i));
       box.appendChild(btn);
     });
@@ -106,7 +133,12 @@
     fbText.textContent = res.isCorrect ? `⭕ 正解！ +${res.gained}点` : '❌ ざんねん…';
     fbText.className = res.isCorrect ? 'ok' : 'ng';
     const sym = res.symbol;
-    $('fb-detail').textContent = `${sym.display}　${sym.reading}：${sym.meaning}`;
+    const detail = $('fb-detail');
+    detail.textContent = '';
+    const glyph = document.createElement('span');
+    glyph.className = 'fb-glyph';
+    setSymbol(glyph, sym.display);
+    detail.append(glyph, `　${sym.reading}：${sym.meaning}`);
     $('feedback').hidden = false;
     $('btn-next').focus();
     renderStatus();

@@ -1,24 +1,23 @@
 (function (root) {
   // freq: Hz / start: 開始秒 / duration: 長さ秒
   const PATTERNS = {
-    // C5 → E5 → G5 → C6: 明るい上昇アルペジオ
+    // ピンポーン: 高い「ピン」のあと、やや低い「ポーン」を長めに響かせる
     correct: {
-      wave: 'triangle',
-      volume: 0.25,
+      wave: 'sine',
+      volume: 0.6,
       notes: [
-        { freq: 523.25, start: 0, duration: 0.12 },
-        { freq: 659.25, start: 0.1, duration: 0.12 },
-        { freq: 783.99, start: 0.2, duration: 0.12 },
-        { freq: 1046.5, start: 0.3, duration: 0.28 },
+        { freq: 1760, start: 0, duration: 0.25 },
+        { freq: 1318.51, start: 0.25, duration: 1.1 },
       ],
     },
-    // 低い音が下降: ブブー
+    // ブッブー: 低い同じ高さのブザー音を、短く・長くの2回
     wrong: {
       wave: 'sawtooth',
       volume: 0.18,
+      hold: true,
       notes: [
-        { freq: 196.0, start: 0, duration: 0.18 },
-        { freq: 146.83, start: 0.18, duration: 0.35 },
+        { freq: 150, start: 0, duration: 0.18 },
+        { freq: 150, start: 0.26, duration: 0.5 },
       ],
     },
   };
@@ -37,6 +36,8 @@
       // クリックノイズ防止のため、短いフェードイン・フェードアウトを付ける
       gain.gain.setValueAtTime(0.0001, t0 + n.start);
       gain.gain.linearRampToValueAtTime(pattern.volume, t0 + n.start + 0.01);
+      // ブザー音は音量を保ったまま切り、チャイム音は余韻として減衰させる
+      if (pattern.hold) gain.gain.setValueAtTime(pattern.volume, t0 + n.start + n.duration - 0.02);
       gain.gain.exponentialRampToValueAtTime(0.0001, t0 + n.start + n.duration);
       osc.connect(gain);
       gain.connect(ctx.destination);
